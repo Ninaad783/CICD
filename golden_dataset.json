@@ -1,0 +1,37 @@
+[
+  {
+    "id": "q1",
+    "query": "Who built Antigravity?",
+    "expected_answer": "Antigravity was built by the Google DeepMind team.",
+    "expected_keywords": ["DeepMind", "Google"],
+    "category": "creator_info"
+  },
+  {
+    "id": "q2",
+    "query": "What is Antigravity's primary purpose?",
+    "expected_answer": "It is designed to help software engineers with complex codebase modifications, bug fixes, and architectural planning.",
+    "expected_keywords": ["software engineers", "codebase", "bug fixes", "architectural planning"],
+    "category": "product_features"
+  },
+  {
+    "id": "q3",
+    "query": "What type of frameworks does Antigravity use?",
+    "expected_answer": "Antigravity uses agentic frameworks.",
+    "expected_keywords": ["agentic"],
+    "category": "product_architecture"
+  },
+  {
+    "id": "q4",
+    "query": "Can Antigravity cook pizza?",
+    "expected_answer": "I do not have enough information to answer this.",
+    "expected_keywords": ["not have enough information"],
+    "category": "out_of_domain"
+  },
+  {
+    "id": "q5",
+    "query": "What is the capital of France?",
+    "expected_answer": "I do not have enough information to answer this.",
+    "expected_keywords": ["not have enough information"],
+    "category": "out_of_domain"
+  }
+]

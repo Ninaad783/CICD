@@ -1,0 +1,1 @@
+Antigravity is a coding assistant built by the Google DeepMind team. It is designed to help software engineers with complex codebase modifications, bug fixes, and architectural planning using agentic frameworks.
