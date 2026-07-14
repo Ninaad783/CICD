@@ -50,9 +50,9 @@ class RAGPipeline:
             os.makedirs(self.kb_dir)
             # Create a default sample file if directory is empty
             with open(os.path.join(self.kb_dir, "sample.txt"), "w", encoding="utf-8") as f:
-                f.write("Antigravity is a coding assistant built by the Google DeepMind team. "
-                        "It is designed to help software engineers with complex codebase modifications, "
-                        "bug fixes, and architectural planning using agentic frameworks.")
+                f.write("NexusQA is an enterprise knowledge assistant built by the Nexus Corp engineering team. "
+                        "It is designed to help employees search internal documents, summarize policy details, "
+                        "and retrieve onboarding information using agentic frameworks.")
         
         txt_files = glob.glob(os.path.join(self.kb_dir, "*.txt"))
         documents = []
