@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LLM Evaluation CI/CD Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="background-glow bg-purple"></div>
+    <div class="background-glow bg-cyan"></div>
+
+    <div class="container">
+        <!-- Header -->
+        <header>
+            <div class="brand">
+                <span class="pulse-dot"></span>
+                <h1>LLM Eval CI/CD</h1>
+                <span class="badge-dev">MLOps Pipeline</span>
+            </div>
+            <p class="subtitle">Automated prompts, models, and knowledge-base regression tracking</p>
+        </header>
+
+        <!-- Main stats grid of the latest run -->
+        <section class="stats-grid">
+            <div class="glass-card stat-card" id="card-faithfulness">
+                <div class="stat-icon">🎯</div>
+                <div class="stat-info">
+                    <h3>Avg Faithfulness</h3>
+                    <p class="stat-value" id="val-faithfulness">--</p>
+                    <span class="stat-label" id="lbl-faithfulness">Target: >= 80%</span>
+                </div>
+            </div>
+            <div class="glass-card stat-card" id="card-relevancy">
+                <div class="stat-icon">💬</div>
+                <div class="stat-info">
+                    <h3>Avg Relevancy</h3>
+                    <p class="stat-value" id="val-relevancy">--</p>
+                    <span class="stat-label" id="lbl-relevancy">Target: >= 80%</span>
+                </div>
+            </div>
+            <div class="glass-card stat-card" id="card-latency">
+                <div class="stat-icon">⚡</div>
+                <div class="stat-info">
+                    <h3>p95 Latency</h3>
+                    <p class="stat-value" id="val-latency">--</p>
+                    <span class="stat-label" id="lbl-latency">Target: <= 3.0s</span>
+                </div>
+            </div>
+            <div class="glass-card stat-card">
+                <div class="stat-icon">💵</div>
+                <div class="stat-info">
+                    <h3>Last Run Cost</h3>
+                    <p class="stat-value" id="val-cost">--</p>
+                    <span class="stat-label">Gemini 1.5 Flash Pricing</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Charts Section -->
+        <section class="charts-section">
+            <div class="glass-card chart-card">
+                <h2>Evaluation Trend (Faithfulness vs Relevancy)</h2>
+                <div class="chart-container">
+                    <canvas id="trendChart"></canvas>
+                </div>
+            </div>
+            <div class="glass-card chart-card">
+                <h2>Latency Benchmarks (p50 / p95)</h2>
+                <div class="chart-container">
+                    <canvas id="latencyChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <!-- Commit Runs History Table & Details -->
+        <section class="history-section">
+            <div class="glass-card history-card">
+                <h2>Commit Runs History</h2>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Commit</th>
+                                <th>Message</th>
+                                <th>Author</th>
+                                <th>Timestamp</th>
+                                <th>Metrics (F / R)</th>
+                                <th>p95 Latency</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="history-tbody">
+                            <tr>
+                                <td colspan="7" style="text-align: center; padding: 2rem; color: var(--text-secondary);">Loading evaluation logs...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- Details Modal / Card -->
+        <section class="details-section glass-card" id="details-section" style="display: none;">
+            <div class="details-header">
+                <h2>Test Cases Detail: Commit <span id="detail-sha" class="text-cyan">xxxxxxx</span></h2>
+                <button onclick="closeDetails()" class="btn-close">Close ×</button>
+            </div>
+            <div class="test-cards-grid" id="test-cards-container">
+                <!-- Test cards injected here -->
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer>
+            <p>Built with Google Gemini API & GitHub Actions. 100% Free MLOps Architecture.</p>
+        </footer>
+    </div>
+
+    <!-- Script to load and process run_history.json -->
+    <script>
+        let runHistoryData = [];
+
+        async function loadData() {
+            try {
+                const response = await fetch('data/run_history.json');
+                if (!response.ok) {
+                    throw new Error("Unable to fetch data");
+                }
+                runHistoryData = await response.json();
+                renderDashboard();
+            } catch (err) {
+                console.error("Error loading JSON history:", err);
+                document.getElementById('history-tbody').innerHTML = `
+                    <tr>
+                        <td colspan="7" style="text-align: center; padding: 2rem; color: var(--red);">
+                            Error loading evaluation data. Please run eval_pipeline.py first to generate data.
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+
+        function renderDashboard() {
+            if (runHistoryData.length === 0) return;
+            
+            // Latest Run Stats
+            const latest = runHistoryData[0];
+            document.getElementById('val-faithfulness').innerText = (latest.avg_faithfulness * 100).toFixed(0) + '%';
+            document.getElementById('val-relevancy').innerText = (latest.avg_relevancy * 100).toFixed(0) + '%';
+            document.getElementById('val-latency').innerText = latest.p95_latency.toFixed(2) + 's';
+            document.getElementById('val-cost').innerText = '$' + latest.total_cost.toFixed(5);
+
+            // Stat card alerts based on SLA limits
+            updateSlaCard('card-faithfulness', latest.avg_faithfulness >= 0.8);
+            updateSlaCard('card-relevancy', latest.avg_relevancy >= 0.8);
+            updateSlaCard('card-latency', latest.p95_latency <= 3.0);
+
+            // Table rendering
+            const tbody = document.getElementById('history-tbody');
+            tbody.innerHTML = '';
+            
+            runHistoryData.forEach((run, index) => {
+                const statusBadge = run.passed 
+                    ? '<span class="badge badge-success">Passed</span>' 
+                    : '<span class="badge badge-danger">Failed</span>';
+                
+                const tr = document.createElement('tr');
+                tr.className = 'clickable-row';
+                tr.onclick = () => showDetails(index);
+                tr.innerHTML = `
+                    <td><span class="commit-hash">${run.commit_sha}</span></td>
+                    <td class="commit-msg">${run.commit_msg}</td>
+                    <td>${run.author}</td>
+                    <td class="text-secondary">${run.timestamp}</td>
+                    <td>${(run.avg_faithfulness * 100).toFixed(0)}% / ${(run.avg_relevancy * 100).toFixed(0)}%</td>
+                    <td>${run.p95_latency.toFixed(2)}s</td>
+                    <td>${statusBadge}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            // Render Charts
+            renderCharts();
+        }
+
+        function updateSlaCard(id, passed) {
+            const card = document.getElementById(id);
+            if (passed) {
+                card.classList.remove('failed-sla');
+                card.classList.add('passed-sla');
+            } else {
+                card.classList.remove('passed-sla');
+                card.classList.add('failed-sla');
+            }
+        }
+
+        function renderCharts() {
+            // Reverse chronological order for chart display (oldest to newest)
+            const chronologicalRuns = [...runHistoryData].reverse();
+            const labels = chronologicalRuns.map(r => r.commit_sha);
+            
+            // 1. Trend Chart (Line)
+            const ctxTrend = document.getElementById('trendChart').getContext('2d');
+            new Chart(ctxTrend, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Faithfulness',
+                            data: chronologicalRuns.map(r => r.avg_faithfulness * 100),
+                            borderColor: '#06b6d4', // Cyan
+                            backgroundColor: 'rgba(6, 182, 212, 0.1)',
+                            tension: 0.3,
+                            fill: true
+                        },
+                        {
+                            label: 'Relevancy',
+                            data: chronologicalRuns.map(r => r.avg_relevancy * 100),
+                            borderColor: '#a855f7', // Purple
+                            backgroundColor: 'rgba(168, 85, 247, 0.1)',
+                            tension: 0.3,
+                            fill: true
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            min: 0,
+                            max: 100,
+                            ticks: { callback: value => value + '%', color: '#94a3b8' },
+                            grid: { color: 'rgba(255, 255, 255, 0.05)' }
+                        },
+                        x: {
+                            ticks: { color: '#94a3b8' },
+                            grid: { display: false }
+                        }
+                    },
+                    plugins: {
+                        legend: { labels: { color: '#f8fafc', font: { family: 'Outfit' } } }
+                    }
+                }
+            });
+
+            // 2. Latency Chart (Bar)
+            const ctxLatency = document.getElementById('latencyChart').getContext('2d');
+            new Chart(ctxLatency, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'p50 Latency',
+                            data: chronologicalRuns.map(r => r.p50_latency),
+                            backgroundColor: 'rgba(6, 182, 212, 0.7)',
+                            borderColor: '#06b6d4',
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'p95 Latency (SLA)',
+                            data: chronologicalRuns.map(r => r.p95_latency),
+                            backgroundColor: 'rgba(239, 68, 68, 0.7)',
+                            borderColor: '#ef4444',
+                            borderWidth: 1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            ticks: { callback: value => value + 's', color: '#94a3b8' },
+                            grid: { color: 'rgba(255, 255, 255, 0.05)' }
+                        },
+                        x: {
+                            ticks: { color: '#94a3b8' },
+                            grid: { display: false }
+                        }
+                    },
+                    plugins: {
+                        legend: { labels: { color: '#f8fafc', font: { family: 'Outfit' } } }
+                    }
+                }
+            });
+        }
+
+        function showDetails(index) {
+            const run = runHistoryData[index];
+            document.getElementById('detail-sha').innerText = run.commit_sha;
+            
+            const container = document.getElementById('test-cards-container');
+            container.innerHTML = '';
+            
+            run.test_cases.forEach(tc => {
+                const card = document.createElement('div');
+                card.className = `test-card ${tc.passed ? 'border-green' : 'border-red'}`;
+                
+                const statusBadge = tc.passed 
+                    ? '<span class="status-indicator passed">PASSED</span>' 
+                    : '<span class="status-indicator failed">FAILED</span>';
+
+                card.innerHTML = `
+                    <div class="test-card-header">
+                        <span class="test-category">${tc.category.toUpperCase()}</span>
+                        ${statusBadge}
+                    </div>
+                    <div class="test-qa">
+                        <p class="qa-item"><strong>Q:</strong> ${tc.query}</p>
+                        <p class="qa-item"><strong>A:</strong> <span class="text-white">${tc.generated_answer}</span></p>
+                    </div>
+                    <div class="test-scores">
+                        <div class="score-pill">
+                            <span>Faithfulness:</span>
+                            <strong class="${tc.faithfulness >= 0.75 ? 'text-cyan' : 'text-red'}">${(tc.faithfulness * 100).toFixed(0)}%</strong>
+                        </div>
+                        <div class="score-pill">
+                            <span>Relevancy:</span>
+                            <strong class="${tc.relevancy >= 0.75 ? 'text-purple' : 'text-red'}">${(tc.relevancy * 100).toFixed(0)}%</strong>
+                        </div>
+                        <div class="score-pill">
+                            <span>Latency:</span>
+                            <strong>${tc.latency.toFixed(2)}s</strong>
+                        </div>
+                    </div>
+                    <div class="test-reasons">
+                        <p class="reason-text"><strong>Faithfulness note:</strong> ${tc.faithfulness_reason}</p>
+                        <p class="reason-text"><strong>Relevancy note:</strong> ${tc.relevancy_reason}</p>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+
+            document.getElementById('details-section').style.display = 'block';
+            document.getElementById('details-section').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function closeDetails() {
+            document.getElementById('details-section').style.display = 'none';
+        }
+
+        // Initialize Page
+        loadData();
+    </script>
+</body>
+</html>
