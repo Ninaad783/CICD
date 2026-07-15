@@ -63,6 +63,19 @@ header {
     margin-bottom: 2.5rem;
 }
 
+.header-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.brand-group {
+    display: flex;
+    flex-direction: column;
+}
+
 .brand {
     display: flex;
     align-items: center;
@@ -103,6 +116,37 @@ header h1 {
 .subtitle {
     color: var(--text-secondary);
     font-size: 1.05rem;
+}
+
+.github-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 1.2rem;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    background: rgba(255, 255, 255, 0.03);
+    color: var(--text-primary);
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: 500;
+    backdrop-filter: blur(8px);
+    transition: all 0.2s ease;
+}
+
+.github-btn svg {
+    transition: transform 0.2s ease;
+}
+
+.github-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: var(--cyan);
+    box-shadow: 0 0 12px rgba(6, 182, 212, 0.2);
+    transform: translateY(-2px);
+}
+
+.github-btn:hover svg {
+    transform: scale(1.15);
 }
 
 /* Glassmorphism Card Base */
