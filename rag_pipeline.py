@@ -128,9 +128,10 @@ Answer:"""
                 )
                 answer = response.text.strip()
         except Exception as e:
-            if "429" in str(e) or "RESOURCE_EXHAUSTED" in str(e):
-                print("  -> Quota exceeded. Falling back to mock generation.")
-                answer = f"Mock answer for: {user_query} (Quota exceeded fallback)."
+            err_str = str(e)
+            if any(term in err_str for term in ["429", "RESOURCE_EXHAUSTED", "503", "UNAVAILABLE", "Server disconnected", "connection"]):
+                print(f"  -> API unavailable ({err_str}). Falling back to mock generation.")
+                answer = f"Mock answer for: {user_query} (API fallback)."
             else:
                 answer = f"Error generating answer: {e}"
             

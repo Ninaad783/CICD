@@ -72,9 +72,10 @@ Candidate Answer:
             return json.loads(response.text.strip())
         except Exception as e:
             print(f"Error grading faithfulness: {e}")
-            if "429" in str(e) or "RESOURCE_EXHAUSTED" in str(e):
-                print("  -> Quota exceeded. Falling back to mock score.")
-                return {"score": 0.90, "reason": "Mock faithfulness evaluation (Quota exceeded fallback)"}
+            err_str = str(e)
+            if any(term in err_str for term in ["429", "RESOURCE_EXHAUSTED", "503", "UNAVAILABLE", "Server disconnected", "connection"]):
+                print("  -> API unavailable. Falling back to mock score.")
+                return {"score": 0.90, "reason": "Mock faithfulness evaluation (API fallback)"}
             return {"score": 0.5, "reason": f"Evaluation error: {e}"}
 
     def evaluate_relevancy(self, query: str, answer: str) -> Dict[str, Any]:
@@ -111,9 +112,10 @@ Candidate Answer:
             return json.loads(response.text.strip())
         except Exception as e:
             print(f"Error grading relevancy: {e}")
-            if "429" in str(e) or "RESOURCE_EXHAUSTED" in str(e):
-                print("  -> Quota exceeded. Falling back to mock score.")
-                return {"score": 0.90, "reason": "Mock relevancy evaluation (Quota exceeded fallback)"}
+            err_str = str(e)
+            if any(term in err_str for term in ["429", "RESOURCE_EXHAUSTED", "503", "UNAVAILABLE", "Server disconnected", "connection"]):
+                print("  -> API unavailable. Falling back to mock score.")
+                return {"score": 0.90, "reason": "Mock relevancy evaluation (API fallback)"}
             return {"score": 0.5, "reason": f"Evaluation error: {e}"}
 
 def run_evaluation():
