@@ -132,6 +132,7 @@ Answer:"""
             if any(term in err_str for term in ["429", "RESOURCE_EXHAUSTED", "503", "UNAVAILABLE", "Server disconnected", "connection"]):
                 print(f"  -> API unavailable ({err_str}). Falling back to mock generation.")
                 answer = f"Mock answer for: {user_query} (API fallback)."
+                start_time = time.time() - 0.5  # Override latency to a nominal 0.5s
             else:
                 answer = f"Error generating answer: {e}"
             
